@@ -168,7 +168,7 @@ var uuidv4 = require('uuid/v4'),
             return retVal;
         },
 
-        addOperationToFolder: function (path, method, operation, folderName, params) {
+        addOperationToFolder: function (path, method, operation, folderName, params, json) {
             var root = this,
                 request = {
                     'id': uuidv4(),
@@ -273,9 +273,16 @@ var uuidv4 = require('uuid/v4'),
                     }
 
                     else if (thisParams[param].in === 'body') {
+//                        request.dataMode = 'raw';
+//                        request.rawModeData = thisParams[param].description;
+
                         request.dataMode = 'raw';
-                        request.rawModeData = thisParams[param].description;
-                    }
+                        Properties = this.resolveRef(thisParams[param], json)
+                        schema = Object.assign({}, Properties.schema);
+                        schema = this.removeTypeKeyword(schema);
+                        model = JSON.stringify(schema, null, 4);
+
+                        request.rawModeData = model                     }
 
                     else if (thisParams[param].in === 'formData') {
                         if (thisConsumes.indexOf('application/x-www-form-urlencoded') > -1) {
@@ -313,7 +320,64 @@ var uuidv4 = require('uuid/v4'),
             }
         },
 
-        addPathItemToFolder: function (path, pathItem, folderName) {
+        removeTypeKeyword: function (Properties) {
+
+            _this = this;
+
+            for (var i in Properties) {
+
+                if(typeof Properties[i] == "object") {
+                    // オブジェクトだったらそのまま再帰処理
+                    objProperties = Object.assign({}, Properties[i]);
+                    Properties[i] = this.removeTypeKeyword(objProperties)
+
+                } else {
+                    if (Properties['type'] == "array") {
+                        // 配列だったら、中のitemsを再帰処理
+                        objItems = Object.assign({}, Properties['items']);
+                        return [this.removeTypeKeyword(objItems)]
+
+                    } else {
+                        // オブジェクトでなければ、そのまま型名を返してtypeキー名を削除する
+                        if (Properties['example'] !== '') {
+                            return Properties['example']
+                        } else {
+                            if (Properties['type'] === 'string') {
+                                return 'example_string'
+                            } else if (Properties['type'] === 'integer') {
+                                return 1
+                            } else {
+                                return Properties['type'];
+                            }
+                        }
+                    }
+                }
+            }
+            return Properties
+        },
+
+        // definitionsへの参照を経穴して、APIリクエストとして1つにまとめる
+        resolveRef: function(Properties, json){
+
+            _this = this;
+
+            Object.keys(Properties).forEach(function (key) {
+
+                if (Properties[key].hasOwnProperty('$ref')) {
+                    objectName = Properties[key].$ref.replace("#/definitions/", "");
+                    Properties[key] = Object.assign({}, json.definitions[objectName]["properties"]);
+                }
+
+                if (typeof Properties[key] == "object") {
+                    _this.resolveRef(Properties[key], json)
+                }
+
+            })
+
+            return Properties
+        },
+
+        addPathItemToFolder: function (path, pathItem, folderName, json) {
             if (pathItem.$ref) {
                 this.logger('Error - cannot handle $ref attributes');
                 return;
@@ -340,7 +404,8 @@ var uuidv4 = require('uuid/v4'),
                         verb.toUpperCase(),
                         pathItem[verb],
                         folderName,
-                        paramsForPathItem
+                        paramsForPathItem,
+                        json
                     );
                 }
             }
@@ -356,7 +421,7 @@ var uuidv4 = require('uuid/v4'),
                 if (paths.hasOwnProperty(path)) {
                     folderName = this.getFolderNameForPath(path);
                     this.logger('Adding path item. path = ' + path + '   folder = ' + folderName);
-                    this.addPathItemToFolder(path, paths[path], folderName);
+                    this.addPathItemToFolder(path, paths[path], folderName, json);
                 }
             }
         },
