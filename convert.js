@@ -273,9 +273,6 @@ var uuidv4 = require('uuid/v4'),
                     }
 
                     else if (thisParams[param].in === 'body') {
-//                        request.dataMode = 'raw';
-//                        request.rawModeData = thisParams[param].description;
-
                         request.dataMode = 'raw';
                         Properties = this.resolveRef(thisParams[param], json)
                         schema = Object.assign({}, Properties.schema);

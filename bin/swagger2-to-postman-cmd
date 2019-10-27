@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+'use strict'
+
 //imort package
 var program = require('commander'),
-    swg2postman = require('swagger2-to-postman'),
+    swg2postman = require('../convert.js'),
     fs = require('fs'),
     path = require('path');
 
@@ -12,7 +14,7 @@ convert = (input) => {
   });
 }
 
-//main 
+//main
 program
   .option('-i, --input <input_file>', 'swagger.json')
   .parse(process.argv)
