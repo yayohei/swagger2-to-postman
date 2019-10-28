@@ -3,11 +3,11 @@
 
 //imort package
 var program = require('commander'),
-    swg2postman = require('../convert.js'),
+    swg2postman = require('swagger2-to-postman'),
     fs = require('fs'),
     path = require('path');
 
-convert = (input) => {
+const convert = (input) => {
   fs.readFile(input, 'utf8', function (err, text) {
     var result = new swg2postman().convert(JSON.parse(text));
     console.log(JSON.stringify(result.collection));
