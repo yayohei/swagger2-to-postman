@@ -3,7 +3,7 @@
 
 //imort package
 var program = require('commander'),
-    swg2postman = require('swagger2-to-postman'),
+    swg2postman = require('../convert.js'),
     fs = require('fs'),
     path = require('path');
 
